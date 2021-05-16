@@ -93,17 +93,25 @@ df['ask_calc']=df['assentos']*df['distancia_voada_km']/df['decolagens']
 del dummy
 
 dummy = []
+rtk_calc = []
 for index, x in df.iterrows():
+    if x['empresa_nacionalidade'] == 'BRASILEIRA':
+        avgw = 75
+    elif x['empresa_nacionalidade'] == 'ESTRANGEIRA':
+        avgw = 90
+        
     if x['decolagens'] == 0:
+        rtk = float('NaN')
         dummy.append(abs(x['rtk']) < 1000)
     else:
-        dummy.append(abs(x['rtk'] - (75*x['passageiros_pagos']+x['carga_paga_kg']+x['correio_kg']+x['bagagem_kg'] )*
-                         x['distancia_voada_km']/(1000*x['decolagens'])) < 1000)
-print('The number of rtk values that correspond to rtk calculation is: {:.2f}%'.format(100*sum(dummy)/len(dummy)))
-df['rtk_calc']=(75*df['passageiros_pagos']+df['carga_paga_kg']+df['correio_kg']+df['bagagem_kg']
-                )*df['distancia_voada_km']/(1000*df['decolagens'])
+        rtk = (avgw*x['passageiros_pagos']+x['carga_paga_kg']+x['correio_kg']+x['bagagem_kg']
+           )*x['distancia_voada_km']/(1000*x['decolagens'])
+        dummy.append(abs(x['rtk'] - rtk) < 1000)
+    rtk_calc.append(rtk)
 
-del dummy
+print('The number of rtk values that correspond to rtk calculation is: {:.2f}%'.format(100*sum(dummy)/len(dummy)))
+df['rtk_calc'] = rtk_calc
+del dummy, rtk, avgw, rtk_calc
 
 dummy = []
 for index, x in df.iterrows():
@@ -115,10 +123,6 @@ print('The number of atk values that correspond to atk calculation is: {:.2f}%'.
 df['atk_calc']=df['payload']*df['distancia_voada_km']/(1000*df['decolagens'])
 
 del dummy
-# df['avg_weight'] = (df['rtk']*1000*df['decolagens']/
-#                     df['distancia_voada_km'] - df['bagagem_kg'] - 
-#                     df['carga_paga_kg'] - df['correio_kg'])/df['passageiros_pagos']
-
 
 df1 = pd.DataFrame(df.groupby(by='data').agg('sum')['decolagens'])
 
